@@ -1,0 +1,1 @@
+us-east4-docker.pkg.dev/vertex-ai-scraper-project/cloud-run-source-deploy/reset-pipeline-data@sha256:0faf53000ee6016ec0b815a0090df7d9a064441be609969262ea1be465e20072

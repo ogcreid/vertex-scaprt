@@ -1,0 +1,1 @@
+us-east4-docker.pkg.dev/vertex-ai-scraper-project/cloud-run-source-deploy/fetch-sql-credentials@sha256:366a76173667688805f2c4d521bf4453982e54f1c42758f446802c0d0a5beafe

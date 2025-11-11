@@ -1,0 +1,1 @@
+us-east4-docker.pkg.dev/vertex-ai-scraper-project/cloud-run-source-deploy/rescrape-prep@sha256:0559b9ec359aa1509cbdd1e0417e00b09dd202c93f218488d8e55c8c18a4d6c6

@@ -1,0 +1,1 @@
+us-east4-docker.pkg.dev/vertex-ai-scraper-project/cloud-run-source-deploy/page-scraper-worker@sha256:0f35856b0c111103560f911fc1a49cac4bc26a19cdfc95d41818ce767576b3d2

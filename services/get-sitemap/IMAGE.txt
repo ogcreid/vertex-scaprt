@@ -1,0 +1,1 @@
+us-east4-docker.pkg.dev/vertex-ai-scraper-project/cloud-run-source-deploy/get-sitemap@sha256:c28ba69955f77fa9467b5d8a9a2a277805f04ec9fbd66fe915862e44a94ed52e

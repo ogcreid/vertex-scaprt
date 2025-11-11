@@ -1,0 +1,1 @@
+us-east4-docker.pkg.dev/vertex-ai-scraper-project/cloud-run-source-deploy/save-scraped-data-sql@sha256:be10f0f3fa1c17de101296e456ad5e7095f0cbbbc4a3117d1846606430e8c78d
