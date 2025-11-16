@@ -46,7 +46,7 @@ spec:
       containerConcurrency: 80
       containers:
       - env:
-        - name: 'ALLOWED_DBS '
+        - name: 'ALLOWED_DBS'
           value: zoho_rag
         - name: INSTANCE_CONNECTION_NAME
           value: vertex-ai-scraper-project:us-east4:zoho-rag
