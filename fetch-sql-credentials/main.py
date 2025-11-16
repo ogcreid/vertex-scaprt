@@ -3,7 +3,7 @@ import psycopg
 
 # ---------- Core function ----------
 
-def fetch_global_creds():
+def fetch_global_creds(): 
     """
     Connects to the global database using hard-coded credentials.
     Returns the first row of the global table as a Python dict.
