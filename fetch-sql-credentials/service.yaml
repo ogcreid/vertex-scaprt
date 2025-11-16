@@ -59,6 +59,8 @@ spec:
       runtimeClassName: run.googleapis.com/linux-base-image-update
       serviceAccountName: 677825641273-compute@developer.gserviceaccount.com
       timeoutSeconds: 300
+      cloudSqlInstances:
+      - vertex-ai-scraper-project:us-east4:zoho-rag
   traffic:
   - latestRevision: true
     percent: 100

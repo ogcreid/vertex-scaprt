@@ -1,34 +1,18 @@
 import json
 import psycopg
-from google.cloud import secretmanager
-
-# ---------- Secret Manager helpers ----------
-
-def get_secret_value(name: str) -> str:
-    """Fetch secret value from Secret Manager (fixed project)."""
-    project_id = "vertex-ai-scraper-project"  # literal project id
-    client = secretmanager.SecretManagerServiceClient()
-    secret_path = f"projects/{project_id}/secrets/{name}/versions/latest"
-    response = client.access_secret_version(request={"name": secret_path})
-    return response.payload.data.decode("utf-8")
 
 # ---------- Core function ----------
 
 def fetch_global_creds():
     """
-    Connects to rag_global database using credentials stored in Secret Manager.
-    Returns the first row of the credentials table as a Python dict.
+    Connects to the global database using hard-coded credentials.
+    Returns the first row of the global table as a Python dict.
     """
 
-    # 🔹 Hard-coded project id already inside get_secret_value()
-    db_user = get_secret_value("global_db_user")     # your actual secret names
-    db_pw   = get_secret_value("global_db_pw")
-    db_name = get_secret_value("global_db_name")     # match exactly to secret name
-
-    # 🔹 Hard-coded Cloud SQL connection string: adjust instance name here
+    # Hard-coded credentials for connecting to the global database
     dsn = (
         "host='/cloudsql/vertex-ai-scraper-project:us-east4:zoho-rag' "
-        f"dbname='{db_name}' user='{db_user}' password='{db_pw}'"
+        "dbname='rag_global' user='postgres' password='V%p]K$n<F1(|3ggJ'"
     )
 
     with psycopg.connect(dsn) as conn, conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
