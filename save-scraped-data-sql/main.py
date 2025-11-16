@@ -394,13 +394,10 @@ def process_scrape_entrypoint(request):
         "http_status": 200
     }
     """
-    if not DATABASE_URL:
-        return ("FATAL: DATABASE_URL environment variable not set.", 500)
-
     try:
         data = request.get_json()
         url = data["url"]
-        html = data["html"]
+        text = data.get("text") or data.get("html", "")  # Accept 'text' or fall back to 'html'
         http_status = int(data.get("http_status", 200))
         last_updated_str = data.get("last_updated")
         last_updated = datetime.fromisoformat(last_updated_str.replace("Z", "+00:00")) if last_updated_str else None
@@ -408,11 +405,12 @@ def process_scrape_entrypoint(request):
         return (f"Invalid JSON payload: {e}", 400)
 
     try:
-        with psycopg.connect(DATABASE_URL) as conn:
+        database_url = get_database_url()
+        with psycopg.connect(database_url) as conn:
             result = save_scraped_data_sql(
                 conn=conn,
                 url=url,
-                html=html,
+                text=text,
                 last_updated=last_updated,
                 http_status=http_status,
                 force_reparse=FORCE_REPARSE,
@@ -434,7 +432,7 @@ def save_scraped_data_sql(
     *,
     conn: psycopg.Connection,
     url: str,
-    html: str,
+    text: str,
     last_updated: Optional[datetime],
     http_status: int,
     force_reparse: bool = False,
@@ -442,45 +440,74 @@ def save_scraped_data_sql(
     overlap_fraction: float = 0.5,
 ) -> ProcessResult:
     """
-    Processes a single page and saves its blocks, links, and chunks to the database.
+    Processes clean text and saves chunks to the database.
     """
     t0 = time.time()
-    norm_html = _normalize_html_for_hash(html)
-    content_hash = hashlib.sha256(norm_html.encode("utf-8")).hexdigest()
-    page_title = _extract_title(html)
-    crawled_at = datetime.utcnow()
-    updated_at = last_updated or crawled_at
-
-    # Upsert page and check if content has changed
+    
+    # Simple hash of the text content
+    content_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    
+    # Extract page_id from database (worker already saved the page)
     with conn.cursor(row_factory=dict_row) as cur:
-        cur.execute(
-            "SELECT * FROM fn_upsert_page(%(url)s, %(title)s, %(content_hash)s, %(http_status)s, %(crawled_at)s, %(updated_at)s);",
-            {"url": url, "title": page_title, "content_hash": content_hash, "http_status": http_status, "crawled_at": crawled_at, "updated_at": updated_at},
-        )
+        cur.execute("SELECT id FROM pages WHERE url = %s;", (url,))
         row = cur.fetchone()
-        if not row: raise RuntimeError("fn_upsert_page returned no row")
-        page_id, is_changed = int(row["page_id"]), bool(row["is_changed"])
+        if not row:
+            raise RuntimeError(f"Page not found in database: {url}")
+        page_id = int(row["id"])
+    
+    # Create simple text chunks
+    chunks = _chunk_text(text, chunk_size_tokens=chunk_size_tokens, overlap_fraction=overlap_fraction)
 
-    if not is_changed and not force_reparse:
-        elapsed_ms = int((time.time() - t0) * 1000)
-        return ProcessResult(page_id=page_id, is_changed=False, num_blocks=0, num_links=0, num_chunks=0, elapsed_ms=elapsed_ms)
-
-    # If changed, re-process everything
-    blocks = _html_to_blocks(html, base_url=url)
-    links = _extract_links(html, base_url=url)
-    chunks = _build_chunks(blocks, chunk_size_tokens=chunk_size_tokens, overlap_fraction=overlap_fraction)
-
+    # Save chunks to database
     with conn.cursor() as cur:
-        cur.execute("CALL sp_replace_blocks(%(page_id)s, %(blocks)s);", {"page_id": page_id, "blocks": Jsonb(blocks)})
-        cur.execute("CALL sp_replace_page_links(%(page_id)s, %(links)s);", {"page_id": page_id, "links": Jsonb(links)})
         cur.execute("CALL sp_replace_chunks(%(page_id)s, %(chunks)s);", {"page_id": page_id, "chunks": Jsonb(chunks)})
 
     elapsed_ms = int((time.time() - t0) * 1000)
-    return ProcessResult(page_id=page_id, is_changed=True, num_blocks=len(blocks), num_links=len(links), num_chunks=len(chunks), elapsed_ms=elapsed_ms)
+    return ProcessResult(page_id=page_id, is_changed=True, num_blocks=0, num_links=0, num_chunks=len(chunks), elapsed_ms=elapsed_ms)
 
 # =========================================================================
 # 4. Helper Functions
 # =========================================================================
+
+def _chunk_text(text: str, chunk_size_tokens: int = 800, overlap_fraction: float = 0.5) -> List[Dict[str, Any]]:
+    """
+    Simple text chunking: splits clean text into overlapping chunks.
+    """
+    if not text or not text.strip():
+        return []
+    
+    # Rough token estimate: ~4 chars per token
+    chars_per_token = 4
+    chunk_size_chars = chunk_size_tokens * chars_per_token
+    stride_chars = int(chunk_size_chars * (1.0 - overlap_fraction))
+    
+    chunks = []
+    start = 0
+    chunk_index = 0
+    text_length = len(text)
+    
+    while start < text_length:
+        end = start + chunk_size_chars
+        chunk_text = text[start:end].strip()
+        
+        if chunk_text:
+            chunks.append({
+                "chunk_index": chunk_index,
+                "chunk_text": chunk_text,
+                "approx_tokens": len(chunk_text) // chars_per_token,
+                "chunk_size": chunk_size_tokens,
+                "chunk_overlap": overlap_fraction,
+                "start_char": start,
+                "end_char": min(end, text_length)
+            })
+            chunk_index += 1
+        
+        start += stride_chars
+        if start >= text_length:
+            break
+    
+    return chunks
+
 _HEADING_TAGS = {"h1", "h2", "h3"}
 
 def _extract_title(html: str) -> str:

@@ -41,14 +41,7 @@ spec:
     spec:
       containerConcurrency: 80
       containers:
-      - env:
-        - name: DB_INSTANCE
-          value: vertex-ai-scraper-project:us-east4:zoho-rag
-        - name: DB_PASS
-          value: V%p]K$n<F1(|3ggJ
-        - name: DB_USER
-          value: postgres
-        image: us-east4-docker.pkg.dev/vertex-ai-scraper-project/cloud-run-source-deploy/page-scraper-worker@sha256:0f35856b0c111103560f911fc1a49cac4bc26a19cdfc95d41818ce767576b3d2
+      - image: us-east4-docker.pkg.dev/vertex-ai-scraper-project/cloud-run-source-deploy/page-scraper-worker@sha256:0f35856b0c111103560f911fc1a49cac4bc26a19cdfc95d41818ce767576b3d2
         name: page-scraper-worker-1
         ports:
         - containerPort: 8080

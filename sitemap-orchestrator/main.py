@@ -11,20 +11,21 @@ def sitemap_orchestrator(request):
     # 1. Get Environment Variables
     queue_preparer_url = os.environ.get('QUEUE_PREPARER_URL')
     scraper_url = os.environ.get('RECURSIVE_SCRAPER_URL')
-    db_user, db_pass, db_instance = (os.environ.get(k) for k in ('DB_USER', 'DB_PASS', 'DB_INSTANCE'))
 
-    if not all([queue_preparer_url, scraper_url, db_user, db_pass, db_instance]):
-        return ("Error: All required environment variables must be set.", 500)
+    if not all([queue_preparer_url, scraper_url]):
+        return ("Error: Required environment variables must be set.", 500)
 
-    # 2. Get dbname from request
-    dbname = request.args.get('dbname')
-    if not dbname:
-        try:
-            request_json = request.get_json(silent=True)
-            if request_json: dbname = request_json.get('dbname')
-        except Exception: pass
-    if not dbname:
-        return ("Error: A 'dbname' must be provided.", 400)
+    # 2. Get DB Config from fetch-sql-credentials
+    credentials_url = 'https://fetch-sql-credentials-677825641273.us-east4.run.app'
+    auth_req = google.auth.transport.requests.Request()
+    token = google.oauth2.id_token.fetch_id_token(auth_req, credentials_url)
+    response = requests.get(credentials_url, headers={'Authorization': f'Bearer {token}'}, timeout=10)
+    creds = response.json()['data']
+    
+    db_user = creds['user']
+    db_pass = creds['password']
+    db_instance = creds['db_instance']
+    dbname = creds['db_name']
 
     # 3. Generate run_guid and create the initial pipeline state record
     run_guid = str(uuid.uuid4())
@@ -42,7 +43,6 @@ def sitemap_orchestrator(request):
         return (f"Failed to create initial pipeline_state record. Error: {e}", 500)
     
     # --- 4. Execute Pipeline Steps ---
-    auth_req = google.auth.transport.requests.Request()
     print(f"--- STARTING PIPELINE RUN --- GUID: {run_guid} --- DB: {dbname} ---")
 
     # Step 1: Prepare the scrape queue

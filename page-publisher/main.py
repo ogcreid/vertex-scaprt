@@ -2,7 +2,10 @@ import os
 import time
 import json
 import psycopg
+import requests
 from google.cloud import pubsub_v1
+import google.oauth2.id_token
+import google.auth.transport.requests
 import functions_framework
 
 # --- Configuration ---
@@ -13,14 +16,17 @@ QUIESCENCE_SLEEP_SECONDS = 15
 
 @functions_framework.http
 def page_publisher(request):
-    # 1. Get Input and DB Config
-    dbname = request.args.get('dbname')
-    if not dbname:
-        try:
-            request_json = request.get_json(silent=True)
-            if request_json: dbname = request_json.get('dbname')
-        except Exception: pass
-    if not dbname: return ("Error: 'dbname' must be provided.", 400)
+    # 1. Get DB Config from fetch-sql-credentials
+    credentials_url = 'https://fetch-sql-credentials-677825641273.us-east4.run.app'
+    auth_req = google.auth.transport.requests.Request()
+    token = google.oauth2.id_token.fetch_id_token(auth_req, credentials_url)
+    response = requests.get(credentials_url, headers={'Authorization': f'Bearer {token}'}, timeout=10)
+    creds = response.json()['data']
+    
+    db_user = creds['user']
+    db_pass = creds['password']
+    db_instance = creds['db_instance']
+    dbname = creds['db_name']
     
     print(f"[Publisher] Starting for db: '{dbname}'")
 
@@ -31,8 +37,6 @@ def page_publisher(request):
         return ("Error: PROJECT_ID and PUBSUB_TOPIC_ID env vars must be set.", 500)
     topic_path = pubsub_v1.PublisherClient().topic_path(project_id, topic_id)
 
-    db_user, db_pass, db_instance = (os.environ.get(k) for k in ('DB_USER', 'DB_PASS', 'DB_INSTANCE'))
-    if not all([db_user, db_pass, db_instance]): return ("Error: DB env vars must be set.", 500)
     database_url = f"host='/cloudsql/{db_instance}' dbname='{dbname}' user='{db_user}' password='{db_pass}'"
 
     try:
@@ -95,7 +99,11 @@ def page_publisher(request):
                         for url_id, url, check_hash, patterns in work_batch:
                             message_data = {
                                 "url_id": url_id, "url": url, "run_guid": run_guid,
-                                "dbname": dbname, "check_hash": check_hash,
+                                "dbname": dbname,
+                                "db_user": db_user,
+                                "db_pass": db_pass,
+                                "db_instance": db_instance,
+                                "check_hash": check_hash,
                                 "contextual_patterns": patterns
                             }
                             publisher.publish(topic_path, json.dumps(message_data).encode("utf-8"))

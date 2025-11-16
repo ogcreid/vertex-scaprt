@@ -1,5 +1,8 @@
 import os
 import psycopg
+import requests
+import google.oauth2.id_token
+import google.auth.transport.requests
 import functions_framework
 
 @functions_framework.http
@@ -7,18 +10,17 @@ def reset_pipeline_data(request):
     """
     Connects to the database and calls the sp_reset_pipeline_data procedure.
     """
-    # 1. Get the target database name from the request
-    dbname = request.args.get('dbname')
-    if not dbname:
-        return ("Error: A 'dbname' URL query parameter is required.", 400)
-
-    # 2. Get DB connection details from environment variables
-    db_user = os.environ.get('DB_USER')
-    db_pass = os.environ.get('DB_PASS')
-    db_instance = os.environ.get('DB_INSTANCE')
-
-    if not all([db_user, db_pass, db_instance]):
-        return ("Error: DB_USER, DB_PASS, and DB_INSTANCE env vars must be set.", 500)
+    # 1. Get DB Config from fetch-sql-credentials
+    credentials_url = 'https://fetch-sql-credentials-677825641273.us-east4.run.app'
+    auth_req = google.auth.transport.requests.Request()
+    token = google.oauth2.id_token.fetch_id_token(auth_req, credentials_url)
+    response = requests.get(credentials_url, headers={'Authorization': f'Bearer {token}'}, timeout=10)
+    creds = response.json()['data']
+    
+    db_user = creds['user']
+    db_pass = creds['password']
+    db_instance = creds['db_instance']
+    dbname = creds['db_name']
 
     database_url = f"host='/cloudsql/{db_instance}' dbname='{dbname}' user='{db_user}' password='{db_pass}'"
 

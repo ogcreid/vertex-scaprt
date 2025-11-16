@@ -22,6 +22,18 @@ def extract_metadata(soup):
             pass  # Ignore malformed dates
     return title, None
 
+def extract_clean_text(soup):
+    """Extracts clean text content from HTML soup, removing scripts and styles."""
+    # Remove script and style elements
+    for script_or_style in soup(['script', 'style', 'noscript', 'iframe']):
+        script_or_style.decompose()
+    
+    # Get text and clean up whitespace
+    text = soup.get_text(separator=' ', strip=True)
+    # Collapse multiple spaces/newlines into single spaces
+    text = ' '.join(text.split())
+    return text
+
 def get_base_domain(url: str):
     """Gets the base domain (e.g., zoho.com) from a URL."""
     hostname = urlparse(url).hostname
@@ -40,6 +52,9 @@ def page_scraper_worker(cloud_event):
         url = job_data['url']
         run_guid = job_data['run_guid']
         dbname = job_data['dbname']
+        db_user = job_data['db_user']
+        db_pass = job_data['db_pass']
+        db_instance = job_data['db_instance']
         check_hash = job_data['check_hash']
         patterns_str = job_data['contextual_patterns']
     except (KeyError, json.JSONDecodeError) as e:
@@ -49,11 +64,7 @@ def page_scraper_worker(cloud_event):
     worker_id = str(uuid.uuid4())
     print(f"Worker {worker_id} started for URL ID {url_id}: {url}")
 
-    # 2. Get DB Config
-    db_user, db_pass, db_instance = (os.environ.get(k) for k in ('DB_USER', 'DB_PASS', 'DB_INSTANCE'))
-    if not all([db_user, db_pass, db_instance]):
-        print("Error: DB env vars must be set.")
-        raise RuntimeError("Missing DB environment variables")
+    # 2. Build DB connection string
     database_url = f"host='/cloudsql/{db_instance}' dbname='{dbname}' user='{db_user}' password='{db_pass}'"
 
     # 3. Immediately mark job as 'processing'
@@ -87,11 +98,12 @@ def page_scraper_worker(cloud_event):
         if should_save:
             soup = BeautifulSoup(html_content, 'lxml')
             title, updated_at_from_meta = extract_metadata(soup)
+            clean_text = extract_clean_text(soup)
             with psycopg.connect(database_url, autocommit=True) as conn:
                 with conn.cursor() as cur:
                     cur.execute(
                         "SELECT * FROM fn_upsert_page(%s, %s, %s, %s, %s, %s, %s, %s);",
-                        (url, title, None, new_hash, response.status_code, datetime.now(timezone.utc), updated_at_from_meta, html_content)
+                        (url, title, None, new_hash, response.status_code, datetime.now(timezone.utc), updated_at_from_meta, clean_text)
                     )
         
         # Discover & Queue New Links

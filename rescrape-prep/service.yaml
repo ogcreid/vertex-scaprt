@@ -41,14 +41,6 @@ spec:
       containerConcurrency: 80
       containers:
       - env:
-        - name: DB_INSTANCE
-          value: vertex-ai-scraper-project:us-east4:zoho-rag
-        - name: DB_NAME
-          value: zoho_rag
-        - name: DB_PASS
-          value: V%p]K$n<F1(|3ggJ
-        - name: DB_USER
-          value: postgres
         - name: FILTER_URL_ENDPOINT
           value: https://filter-url-677825641273.us-east4.run.app
         image: us-east4-docker.pkg.dev/vertex-ai-scraper-project/cloud-run-source-deploy/rescrape-prep@sha256:0559b9ec359aa1509cbdd1e0417e00b09dd202c93f218488d8e55c8c18a4d6c6

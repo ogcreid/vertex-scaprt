@@ -1,7 +1,10 @@
 # find_sitemaps_for_urls.py
 
 import time
+import requests
 import psycopg
+import google.oauth2.id_token
+import google.auth.transport.requests
 from psycopg.rows import dict_row
 from typing import Any, Dict, List
 
@@ -24,7 +27,13 @@ def find_sitemaps_for_urls_http(request):
 
     # --- Connect to DB ---
     try:
-        dsn = f"host='/cloudsql/{...}' dbname='{...}' user='{...}' password='{...}'"  # fill in env
+        credentials_url = 'https://fetch-sql-credentials-677825641273.us-east4.run.app'
+        auth_req = google.auth.transport.requests.Request()
+        token = google.oauth2.id_token.fetch_id_token(auth_req, credentials_url)
+        response = requests.get(credentials_url, headers={'Authorization': f'Bearer {token}'}, timeout=10)
+        creds = response.json()['data']
+        
+        dsn = f"host='/cloudsql/{creds['db_instance']}' dbname='{creds['db_name']}' user='{creds['user']}' password='{creds['password']}'"
         conn = psycopg.connect(dsn, row_factory=dict_row)
     except Exception as e:
         return {"ok": False, "error": f"DB connect: {e}"}, 500

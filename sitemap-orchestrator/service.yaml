@@ -54,12 +54,6 @@ spec:
           value: https://prune-sitemap-677825641273.us-east4.run.app
         - name: RECURSIVE_SCRAPER_URL
           value: https://page-publisher-677825641273.us-east4.run.app
-        - name: DB_INSTANCE
-          value: vertex-ai-scraper-project:us-east4:zoho-rag
-        - name: DB_PASS
-          value: V%p]K$n<F1(|3ggJ
-        - name: DB_USER
-          value: postgres
         image: us-east4-docker.pkg.dev/vertex-ai-scraper-project/cloud-run-source-deploy/sitemap-orchestrator@sha256:2ae37eca6c47a2acaf009fa33ebeb484d162b756a14187022e629c7bc9fd005e
         name: sitemap-orchestrator-1
         ports:

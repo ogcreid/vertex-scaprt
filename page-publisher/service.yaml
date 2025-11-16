@@ -46,12 +46,6 @@ spec:
           value: vertex-ai-scraper-project
         - name: PUBSUB_TOPIC_ID
           value: page-scrape-topic
-        - name: DB_INSTANCE
-          value: vertex-ai-scraper-project:us-east4:zoho-rag
-        - name: DB_PASS
-          value: V%p]K$n<F1(|3ggJ
-        - name: DB_USER
-          value: postgres
         image: us-east4-docker.pkg.dev/vertex-ai-scraper-project/cloud-run-source-deploy/page-publisher@sha256:aff6839f3171a578a8f5c22ad1f3369dd314f8e07fda6f6e5d80674332525b79
         name: page-publisher-1
         ports:

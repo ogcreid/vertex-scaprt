@@ -40,16 +40,7 @@ spec:
     spec:
       containerConcurrency: 80
       containers:
-      - env:
-        - name: DB_INSTANCE
-          value: vertex-ai-scraper-project:us-east4:zoho-rag
-        - name: DB_PASS
-          value: V%p]K$n<F1(|3ggJ
-        - name: DB_USER
-          value: postgres
-        - name: DB_NAME
-          value: zoho_rag
-        image: us-east4-docker.pkg.dev/vertex-ai-scraper-project/cloud-run-source-deploy/find-sitemaps@sha256:f48319f99c7a0bab5bec0651dabce2f22fee62eea1ebd9fb526983d61ccd88d9
+      - image: us-east4-docker.pkg.dev/vertex-ai-scraper-project/cloud-run-source-deploy/find-sitemaps@sha256:f48319f99c7a0bab5bec0651dabce2f22fee62eea1ebd9fb526983d61ccd88d9
         name: find-sitemaps-1
         ports:
         - containerPort: 8080

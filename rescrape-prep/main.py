@@ -5,6 +5,8 @@ import time
 import requests
 import psycopg
 import xml.etree.ElementTree as ET
+import google.oauth2.id_token
+import google.auth.transport.requests
 import functions_framework
 from datetime import datetime
 from typing import List, Tuple, Optional
@@ -18,12 +20,14 @@ LIMIT_PAGES_PER_SUBSITEMAP   = int(os.environ.get("LIMIT_PAGES_PER_SUBSITEMAP", 
 TIME_BUDGET_SEC              = int(os.environ.get("TIME_BUDGET_SEC", "240"))
 
 # ---------- Helpers ----------
-def _build_db_dsn() -> str:
-    db_instance = os.environ["DB_INSTANCE"]
-    db_name     = os.environ["DB_NAME"]
-    db_user     = os.environ["DB_USER"]
-    db_pass     = os.environ["DB_PASS"]
-    return f"host='/cloudsql/{db_instance}' dbname='{db_name}' user='{db_user}' password='{db_pass}'"
+def _build_db_dsn():
+    credentials_url = 'https://fetch-sql-credentials-677825641273.us-east4.run.app'
+    auth_req = google.auth.transport.requests.Request()
+    token = google.oauth2.id_token.fetch_id_token(auth_req, credentials_url)
+    response = requests.get(credentials_url, headers={'Authorization': f'Bearer {token}'}, timeout=10)
+    creds = response.json()['data']
+    dsn = f"host='/cloudsql/{creds['db_instance']}' dbname='{creds['db_name']}' user='{creds['user']}' password='{creds['password']}'"
+    return dsn, creds['db_name']
 
 def _ok(x) -> bool:
     return x is not None and str(x).strip() != ""
@@ -80,7 +84,7 @@ def rescrape_prep_http(request):
 
     # Env / endpoints
     try:
-        dsn = _build_db_dsn()
+        dsn, db_name = _build_db_dsn()
     except Exception as e:
         return (json.dumps({"ok": False, "error": f"DB env missing: {e}"}),
                 500, {"Content-Type": "application/json"})
@@ -278,7 +282,7 @@ def rescrape_prep_http(request):
     elapsed = round(time.time() - t0, 3)
     out = {
         "ok": True,
-        "db": os.environ.get("DB_NAME", ""),
+        "db": db_name,
         "sources_used": min(len(sources), LIMIT_SOURCES),
         "staged": staged,
         "inserted_new_pages": inserted_new,
