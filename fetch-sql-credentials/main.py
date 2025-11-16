@@ -11,7 +11,7 @@ def fetch_global_creds():
 
     # Hard-coded credentials for connecting to the global database
     dsn = (
-        "host='/cloudsql/vertex-ai-scraper-project:us-east4:zoho-rag' "
+        "host='/cloudsql/vertex-ai-scraper-project:us-east4:rag' "
         "dbname='rag_global' user='postgres' password='V%p]K$n<F1(|3ggJ'"
     )
 
