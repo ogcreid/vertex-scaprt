@@ -1,4 +1,4 @@
-# cloudbuild.yaml (example for one service directory)
+# cloudbuild.yaml (example v1.0)
 
 substitutions:
   # Change ONLY this per service file:
