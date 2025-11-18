@@ -16,6 +16,7 @@ steps:
   # 1) Build the Docker image for THIS microservice
   # note that variables like PROJECT_ID and _REPO comes from Google injecting the variable for us.
   - name: "gcr.io/cloud-builders/docker"
+    dir: "rescrape-prep"          # <-- IMPORTANT: run inside the microservice directory
     args:
       - "build"
       - "-t"
