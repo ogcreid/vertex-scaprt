@@ -10,7 +10,6 @@ spec:
         autoscaling.knative.dev/maxScale: "20"
         run.googleapis.com/startup-cpu-boost: "true"
     spec:
-      serviceAccountName: 677825641273-compute@developer.gserviceaccount.com
       containerConcurrency: 80
       timeoutSeconds: 300
       containers:
