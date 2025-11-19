@@ -1,4 +1,4 @@
-# v1.0
+# v1.1
 import functions_framework
 from urllib.parse import urlparse
 
